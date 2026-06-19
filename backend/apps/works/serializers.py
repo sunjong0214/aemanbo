@@ -21,6 +21,20 @@ class AnimeSummarySerializer(serializers.ModelSerializer):
         )
 
 
+class AnimeListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Anime
+        fields = (
+            "id",
+            "title",
+            "poster_image_url",
+            "release_year",
+            "status",
+            "rating_avg",
+            "favorite_count",
+        )
+
+
 class MangaSummarySerializer(serializers.ModelSerializer):
     class Meta:
         model = Manga
@@ -29,6 +43,19 @@ class MangaSummarySerializer(serializers.ModelSerializer):
             "title",
             "cover_image_url",
             "status",
+        )
+
+
+class MangaListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Manga
+        fields = (
+            "id",
+            "title",
+            "cover_image_url",
+            "status",
+            "rating_avg",
+            "favorite_count",
         )
 
 
@@ -113,4 +140,34 @@ class AnimeMangaMappingSerializer(serializers.ModelSerializer):
             "description",
             "anime",
             "manga",
+        )
+
+
+class MappingCardSerializer(serializers.ModelSerializer):
+    anime = AnimeSummarySerializer(read_only=True)
+    manga = MangaSummarySerializer(read_only=True)
+
+    class Meta:
+        model = AnimeMangaMapping
+        fields = (
+            "id",
+            "mapping_text",
+            "continue_volume",
+            "continue_chapter",
+            "anime",
+            "manga",
+        )
+
+
+class MappingSearchResultSerializer(serializers.ModelSerializer):
+    anime_title = serializers.CharField(source="anime.title", read_only=True)
+    manga_title = serializers.CharField(source="manga.title", read_only=True)
+
+    class Meta:
+        model = AnimeMangaMapping
+        fields = (
+            "id",
+            "mapping_text",
+            "anime_title",
+            "manga_title",
         )
