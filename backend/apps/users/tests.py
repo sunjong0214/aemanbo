@@ -1,41 +1,68 @@
-from django.contrib.auth import get_user_model
-from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
-from rest_framework.test import APIClient
+from rest_framework.test import APITestCase
+
+from .models import User
 
 
-class MyProfileAPITests(TestCase):
+class UserProfileAPITests(APITestCase):
     def setUp(self):
-        self.client = APIClient()
-        self.user = get_user_model().objects.create_user(
-            username="tester",
-            nickname="tester",
-            email="tester@example.com",
-            password="password",
+        self.user = User.objects.create_user(
+            username="testuser",
+            nickname="test-user",
+            email="test@example.com",
+            password="testpass1234",
         )
+
+    def test_profile_api_requires_authentication(self):
+        response = self.client.get(reverse("users:me-profile"))
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_authenticated_user_can_get_profile(self):
         self.client.force_authenticate(user=self.user)
 
-    def test_my_profile_api_returns_profile(self):
         response = self.client.get(reverse("users:me-profile"))
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["username"], "tester")
-        self.assertEqual(response.data["nickname"], "tester")
+        self.assertEqual(response.data["id"], self.user.id)
+        self.assertEqual(response.data["nickname"], "test-user")
+        self.assertEqual(response.data["email"], "test@example.com")
 
-    def test_my_profile_api_updates_profile(self):
+    def test_authenticated_user_can_update_profile(self):
+        self.client.force_authenticate(user=self.user)
+
         response = self.client.patch(
             reverse("users:me-profile"),
             {
-                "nickname": "new-nickname",
+                "nickname": "updated-user",
                 "profile_image_url": "https://example.com/profile.jpg",
             },
             format="json",
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["nickname"], "new-nickname")
+        self.assertEqual(response.data["nickname"], "updated-user")
         self.assertEqual(
             response.data["profile_image_url"],
             "https://example.com/profile.jpg",
         )
+
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.nickname, "updated-user")
+
+    def test_profile_api_does_not_allow_role_update(self):
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.patch(
+            reverse("users:me-profile"),
+            {
+                "role": User.Role.ADMIN,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.role, User.Role.USER)
