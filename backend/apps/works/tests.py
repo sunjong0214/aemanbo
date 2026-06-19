@@ -19,8 +19,8 @@ class DetailMappingAPITests(TestCase):
         self.client = APIClient()
 
         self.anime = Anime.objects.create(
-            title="주술회전",
-            original_title="呪術廻戦",
+            title="Jujutsu Kaisen",
+            original_title="Jujutsu Kaisen Original",
             poster_image_url="https://example.com/jujutsu-poster.jpg",
             banner_image_url="https://example.com/jujutsu-banner.jpg",
             type=Anime.AnimeType.TVA,
@@ -28,28 +28,28 @@ class DetailMappingAPITests(TestCase):
             episode_count=24,
             status=Anime.WorkStatus.COMPLETED,
             studio="MAPPA",
-            synopsis="저주를 둘러싼 싸움을 그린 다크 판타지 애니메이션.",
+            synopsis="A dark fantasy anime about cursed energy.",
             rating_avg=4.7,
             rating_count=120,
             favorite_count=50,
         )
         self.manga = Manga.objects.create(
-            title="주술회전",
-            original_title="呪術廻戦",
+            title="Jujutsu Kaisen",
+            original_title="Jujutsu Kaisen Manga Original",
             cover_image_url="https://example.com/jujutsu-cover.jpg",
             banner_image_url="https://example.com/jujutsu-manga-banner.jpg",
-            author="아쿠타미 게게",
-            publisher="슈에이샤",
-            description="저주와 주술사를 중심으로 전개되는 배틀 만화.",
+            author="Gege Akutami",
+            publisher="Shueisha",
+            description="A battle manga about sorcerers and curses.",
             status=Manga.MangaStatus.ONGOING,
             rating_avg=4.8,
             rating_count=180,
             favorite_count=70,
         )
 
-        action = MetadataTag.objects.create(name="액션", type=MetadataTag.TagType.GENRE)
+        action = MetadataTag.objects.create(name="Action", type=MetadataTag.TagType.GENRE)
         dark_fantasy = MetadataTag.objects.create(
-            name="다크 판타지",
+            name="Dark Fantasy",
             type=MetadataTag.TagType.GENRE,
         )
         studio = MetadataTag.objects.create(name="MAPPA", type=MetadataTag.TagType.STUDIO)
@@ -65,7 +65,7 @@ class DetailMappingAPITests(TestCase):
             manga=self.manga,
             volume_number=8,
             chapter_number=64,
-            title="시부야 사변",
+            title="Hidden Inventory",
             rating_avg=4.8,
         )
 
@@ -81,9 +81,9 @@ class DetailMappingAPITests(TestCase):
             manga_chapter_to=63,
             continue_volume=8,
             continue_chapter=64,
-            mapping_text="애니 1기 이후 원작 만화 8권 64화부터",
-            description="애니 1기는 원작 63화까지를 다룹니다.",
-            source_note="테스트 데이터",
+            mapping_text="Continue from manga volume 8 chapter 64 after season 1.",
+            description="Season 1 covers up to chapter 63.",
+            source_note="Seed data for API tests.",
         )
 
     def test_anime_detail_api_returns_anime(self):
@@ -93,7 +93,7 @@ class DetailMappingAPITests(TestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["id"], self.anime.id)
-        self.assertEqual(response.data["title"], "주술회전")
+        self.assertEqual(response.data["title"], "Jujutsu Kaisen")
         self.assertEqual(len(response.data["tags"]), 3)
 
     def test_anime_detail_api_returns_404_for_missing_anime(self):
@@ -121,7 +121,7 @@ class DetailMappingAPITests(TestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["id"], self.manga.id)
-        self.assertEqual(response.data["title"], "주술회전")
+        self.assertEqual(response.data["title"], "Jujutsu Kaisen")
         self.assertEqual(len(response.data["tags"]), 2)
 
     def test_manga_detail_api_returns_404_for_missing_manga(self):
@@ -147,7 +147,7 @@ class DetailMappingAPITests(TestCase):
             manga=self.manga,
             volume_number=9,
             chapter_number=65,
-            title="다음 에피소드",
+            title="Next Chapter",
             rating_avg=4.5,
         )
         url = reverse("works:manga-episodes", args=[self.manga.id])
@@ -174,7 +174,7 @@ class HomeSearchRecommendationAPITests(TestCase):
         self.client = APIClient()
         self.anime = Anime.objects.create(
             title="Jujutsu Kaisen",
-            original_title="주술회전",
+            original_title="Jujutsu Kaisen Original",
             poster_image_url="https://example.com/jujutsu-anime.jpg",
             status=Anime.WorkStatus.COMPLETED,
             release_year=2020,
@@ -183,7 +183,7 @@ class HomeSearchRecommendationAPITests(TestCase):
         )
         self.manga = Manga.objects.create(
             title="Jujutsu Kaisen",
-            original_title="주술회전",
+            original_title="Jujutsu Kaisen Manga Original",
             cover_image_url="https://example.com/jujutsu-manga.jpg",
             status=Manga.MangaStatus.ONGOING,
             rating_avg=4.8,
@@ -197,7 +197,7 @@ class HomeSearchRecommendationAPITests(TestCase):
             anime_episode_to=24,
             continue_volume=8,
             continue_chapter=64,
-            mapping_text="애니 1기 이후 원작 만화 8권 64화부터",
+            mapping_text="Continue from manga volume 8 chapter 64 after season 1.",
         )
 
     def test_home_api_returns_initial_sections(self):
@@ -208,20 +208,28 @@ class HomeSearchRecommendationAPITests(TestCase):
         self.assertIn("popular_animes", response.data)
         self.assertIn("popular_mangas", response.data)
         self.assertEqual(response.data["recommended_mappings"][0]["id"], self.mapping.id)
+        self.assertEqual(response.data["popular_animes"][0]["id"], self.anime.id)
+        self.assertEqual(response.data["popular_mangas"][0]["id"], self.manga.id)
 
     def test_search_api_returns_grouped_results(self):
-        response = self.client.get(reverse("works:search"), {"keyword": "주술"})
+        response = self.client.get(reverse("works:search"), {"keyword": "Jujutsu"})
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["keyword"], "주술")
+        self.assertEqual(response.data["keyword"], "Jujutsu")
         self.assertEqual(response.data["animes"][0]["id"], self.anime.id)
         self.assertEqual(response.data["mangas"][0]["id"], self.manga.id)
         self.assertEqual(response.data["mappings"][0]["id"], self.mapping.id)
+        self.assertEqual(response.data["mappings"][0]["anime_title"], self.anime.title)
+        self.assertEqual(response.data["mappings"][0]["manga_title"], self.manga.title)
 
     def test_search_api_returns_400_without_keyword(self):
         response = self.client.get(reverse("works:search"))
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            response.data["detail"],
+            "keyword query parameter is required.",
+        )
 
     def test_recommendations_api_returns_mapping_cards(self):
         response = self.client.get(reverse("works:mapping-recommendations"))
@@ -233,3 +241,5 @@ class HomeSearchRecommendationAPITests(TestCase):
             response.data["results"][0]["mapping_text"],
             self.mapping.mapping_text,
         )
+        self.assertEqual(response.data["results"][0]["anime"]["id"], self.anime.id)
+        self.assertEqual(response.data["results"][0]["manga"]["id"], self.manga.id)
