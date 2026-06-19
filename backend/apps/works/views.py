@@ -5,10 +5,87 @@ from rest_framework.views import APIView
 from .models import Anime, AnimeMangaMapping, Manga, MangaEpisode
 from .serializers import (
     AnimeDetailSerializer,
+    AnimeListSerializer,
     AnimeMangaMappingSerializer,
+    MangaListSerializer,
     MangaDetailSerializer,
     MangaEpisodeSerializer,
+    MappingCardSerializer,
+    MappingSearchResultSerializer,
 )
+from .services import get_home_data, get_recommended_mappings, search_works
+
+
+class HomeAPIView(APIView):
+    def get(self, request):
+        home_data = get_home_data()
+
+        return Response(
+            {
+                "recommended_mappings": MappingCardSerializer(
+                    home_data["recommended_mappings"],
+                    many=True,
+                ).data,
+                "popular_animes": AnimeListSerializer(
+                    home_data["popular_animes"],
+                    many=True,
+                ).data,
+                "popular_mangas": MangaListSerializer(
+                    home_data["popular_mangas"],
+                    many=True,
+                ).data,
+            }
+        )
+
+
+class SearchAPIView(APIView):
+    def get(self, request):
+        keyword = request.query_params.get("keyword", "")
+
+        try:
+            results = search_works(keyword)
+        except ValueError:
+            return Response(
+                {"detail": "keyword query parameter is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(
+            {
+                "keyword": results["keyword"],
+                "animes": AnimeListSerializer(results["animes"], many=True).data,
+                "mangas": MangaListSerializer(results["mangas"], many=True).data,
+                "mappings": MappingSearchResultSerializer(
+                    results["mappings"],
+                    many=True,
+                ).data,
+            }
+        )
+
+
+class MappingRecommendationsAPIView(APIView):
+    def get(self, request):
+        limit_param = request.query_params.get("limit")
+        limit = 20
+
+        if limit_param:
+            try:
+                limit = int(limit_param)
+            except ValueError:
+                return Response(
+                    {"detail": "limit must be a number."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        mappings = get_recommended_mappings(limit=limit)
+        serializer = MappingCardSerializer(mappings, many=True)
+
+        return Response(
+            {
+                "count": len(serializer.data),
+                "results": serializer.data,
+            }
+        )
 
 
 class AnimeDetailAPIView(APIView):
